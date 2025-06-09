@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block main %}
+<form method="POST" action="{{ url_for('main.add_project') }}">
+    <label for="name">Project Name</label>
+    <input type="text" id="name" name="name" required>
+
+    <label for="description">Project Description</label>
+    <textarea id="description" name="description" required></textarea>
+
+    <button type="submit">Add Project</button>
+</form>
+
+{% endblock %}

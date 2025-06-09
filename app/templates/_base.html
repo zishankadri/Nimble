@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-100">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <!-- Tailwind CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="{{ url_for('static', filename='fontawesome/css/all.css') }}" rel="stylesheet">
+
+    <!-- Google Font (Poppins) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    {% block head %}{% endblock head %}
+    
+</head>
+
+<style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+</style>
+<body class="flex h-screen bg-[#1E1E1E] text-white">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex w-64 bg-[#262626] text-white px-4 py-0 flex-col">
+        <a href="/" class="text-2xl font-bold tracking-wider my-8">Nimble</a>
+        <nav class="flex flex-col gap-2 text-gray-300">
+
+            {% for project in projects %}
+                <a id="{{ project.name }}-navlink" 
+                    href="{{ url_for('main.project_detail', id=project.id) }}" 
+                    class="flex gap-4 items-center px-4 py-2 transition hover:bg-white/5 hover:text-white rounded-md
+                    {% if project.name == current_project.name %} bg-white/5 text-white {% endif %}">
+                        
+                    <img src="{{ url_for('static', filename=project.image) }}" 
+                        class="w-6 h-6 rounded-full object-cover">
+
+                    <span id="nav-project-name-{{ project.id }}"> {{ project.name }} </span>
+
+                </a>
+                {% else %}
+                <p>No projects available.</p>
+            {% endfor %}
+
+        </nav>
+        <div class="mt-auto">
+            <form method="POST" action="{{ url_for('main.add_project') }}">
+                <input type="text" id="name" name="name" required placeholder="Add new project" class="w-full px-2 text-sm py-2 outline-none hover:bg-white/5 focus:bg-white/5 rounded-md mb-2">
+                <!-- <button type="submit">Add Project</button> -->
+            </form>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-screen">
+        {% block main %}{% endblock main %}
+    </main>
+
+
+    <!-- Manage django-messages -->
+    {% if messages %}
+    <ul class="messages absolute flex flex-col top-0 items-end w-full gap-1 p-2 z-20 overflow-hidden">
+        {% for message in messages %}
+        <li class="message flex rounded-md justify-between w-96 border border-l-2 text-slate-900 !bg-white z-20
+            {% if message.tags == 'error' %} border-l-red-400 text-red-400 
+            {% elif message.tags == 'info' %} border-l-blue-400 
+            {% elif message.tags == 'success' %} border-l-green-400 
+            {% endif %}
+        ">
+            <span class="message-text p-4 ">
+            {{ message }}
+            </span>
+            <button class="msg-destroy-btn !text-slate-500 p-4 hover:bg-slate-100"><i class="fa-solid fa-x"></i></button>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    
+</body>
+<script>
+    {% block script %} {% endblock script %}
+    // Messages
+    const messages = document.getElementsByClassName("message");
+    for (let i = 0; i < messages.length; i++) { 
+        const message = messages[i];
+        let cutBtn = message.querySelector('.msg-destroy-btn')
+        cutBtn.onclick = () => {
+            message.style.display = "none";
+        }
+    }
+</script>
+<!-- <script>
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.onkeydown = e => {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key))) return false;
+    };
+</script> -->
+  
+</html>

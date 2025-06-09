@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block main %}
+    <style> #home-navlink {color: black;} </style>
+
+    <h1>Welcome to Flask</h1>
+    <h1>All Projects</h1>
+
+    {% for project in projects %}
+        <a id="{{ project.name }}-navlink" 
+                href="{{ url_for('main.project_detail', id=project.id) }}" 
+                class="flex gap-4 items-center px-4 py-2 transition hover:bg-black hover:text-white rounded-md
+                {% if project.name == current_project.name %} bg-black text-white {% endif %}">
+                
+            <img src="{{ url_for('static', filename=project.image) }}" 
+                class="w-6 h-6 rounded-full object-cover">
+
+            {{ project.name }} | {{ project.slug }}
+
+        </a>
+        {% else %}
+        <p>No projects available.</p>
+    {% endfor %}
+
+    <a href="{{ url_for('main.add_project') }}">Add New Project</a>
+{% endblock %}
