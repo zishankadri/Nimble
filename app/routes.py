@@ -1,17 +1,18 @@
 from flask import Blueprint, render_template, request, redirect, url_for
-from .models import  Project, Task, db
-from slugify import slugify
 from sqlalchemy import func
 
+from flask import jsonify
+from datetime import datetime, timezone
+
+from .models import  Project, Task, db
+
 from .utils import random_marble_image
-from datetime import datetime
 
 main = Blueprint('main', __name__)
 
 
 @main.route('/')
 def home():
-    all_projects = Project.query.all()
     all_projects = Project.query.all()
     return render_template('index.html', current_project=None, projects=all_projects)
 
@@ -42,7 +43,6 @@ def add_project():
     # Save the project to the database
     if not new_project.image:
         return "Error generating marble image", 500
-    
 
     db.session.commit()
 
@@ -56,9 +56,6 @@ def delete_project(id):
     db.session.commit()
     return redirect(url_for('main.home'))
 
-
-from flask import jsonify
-from datetime import datetime, timezone
 
 
 @main.route('/project/<int:id>/update_name', methods=['POST'])
@@ -78,6 +75,7 @@ def update_project_name(id):
     db.session.commit()
     return jsonify({"status": "success"})
 
+
 @main.route("/project/<int:id>/get_timer")
 def get_timer(id):
     project = Project.query.get_or_404(id)
@@ -85,22 +83,16 @@ def get_timer(id):
 
     if project.timer_running and project.timer_started_at:
         now = datetime.now()
-
-        # Re-introduce the robust timezone check for project.timer_started_at
-        if project.timer_started_at.tzinfo is None:
-            # If project.timer_started_at is naive, assume it's UTC and make it aware
-            # This is the fallback for when the database doesn't give us an aware object
-            timer_started_at_aware = project.timer_started_at.replace(tzinfo=timezone.utc)
-        else:
-            # If it's already aware, convert it to UTC just to be sure (though if DB returns aware, it's likely already UTC)
-            timer_started_at_aware = project.timer_started_at.astimezone(timezone.utc)
-
-        seconds += int((now - project.timer_started_at).total_seconds())
+        elapsed_seconds = int((now - project.timer_started_at).total_seconds())
+        seconds += elapsed_seconds
+    
+        # Periodic backup (every 10 minutes) to minimize data loss on crash.
+        if elapsed_seconds > 600:  # 10 minutes
+            project.timer_seconds += int(elapsed_seconds)
+            db.session.commit()
 
     return jsonify(seconds=seconds, running=project.timer_running)
 
-
-from datetime import datetime, timezone # Ensure timezone is imported
 
 @main.route("/project/<int:id>/start_timer", methods=["POST"])
 def start_timer(id):
@@ -116,6 +108,7 @@ def start_timer(id):
         # Calculate the elapsed time in seconds
         elapsed_seconds = (now - p.timer_started_at).total_seconds()
 
+        p.timer_seconds += int(elapsed_seconds)
         p.timer_started_at = None
         p.timer_running = False
 
@@ -139,6 +132,7 @@ def start_timer(id):
 
     db.session.commit()
     return '', 204
+
 
 @main.route("/project/<int:id>/stop_timer", methods=["POST"])
 def stop_timer(id):
@@ -172,6 +166,7 @@ def toggle_task(task_id):
     db.session.commit()
     return redirect(url_for('main.project_detail', id=task.project_id))
 
+
 @main.route('/task/<int:task_id>/delete', methods=['POST'])
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
@@ -186,3 +181,34 @@ def toggle_highlight(task_id):
     task.highlighted = not task.highlighted
     db.session.commit()
     return redirect(url_for('main.project_detail', id=task.project_id))
+
+
+# After editing
+@main.route('/project/<int:project_id>/set_timer', methods=['POST'])
+def set_project_timer(project_id):
+    """
+    Sets the timer for a specific project to a new value.
+    Expects a JSON payload with 'seconds'.
+    """
+    try:
+        data = request.get_json()
+        if not data or 'seconds' not in data:
+            return jsonify({"error": "Missing 'seconds' in request body"}), 400
+
+        new_seconds = data['seconds']
+
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({"error": "Project not found"}), 404
+
+        # Update the timer_seconds
+        project.timer_seconds = new_seconds
+        db.session.commit()
+
+        return jsonify({"message": "Timer updated successfully", "new_seconds": new_seconds}), 200
+
+    except Exception as e:
+        db.session.rollback() # Rollback in case of an error
+        return jsonify({"error": str(e)}), 500
+
+

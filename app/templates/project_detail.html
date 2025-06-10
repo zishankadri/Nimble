@@ -3,7 +3,13 @@
 {% block title %}Home Page{% endblock %} 
 
 {% block main %} 
-
+<style>
+.editable-input {
+    border: 1px solid #d1d5db ; /* gray-300 */
+    border-radius: 0.25rem;
+    padding: 0 0.5rem;
+}
+</style>
 
     {% if current_project.image %}
         <div class="w-full h-32 bg-repeat" style="background-image: url('{{ url_for('static', filename=current_project.image) }}'); 
@@ -31,6 +37,12 @@
                             <i class="fa-regular fa-circle-check text-sm pr-2"></i> Mark as complete
                         </button>
                     </form>
+                    
+                    <!-- <button id="editTimerBtn" onclick="enableEdit()" class="text-4xl text-blue-400 hover:text-blue-500 aspect-square cursor-pointer" style="display: none;"> -->
+                    <button id="editTimerBtn" onclick="enableEdit()" class="block w-full text-left px-4 py-2 text-gray-400 hover:text-green-400 hover:bg-back-600">
+
+                        <i class="fa-light fa-pen-to-square text-sm pr-2"></i> Edit Timer
+                    </button>
                 </div>
             </div>
         </div>
@@ -61,18 +73,23 @@
             <!-- Timer -->
             <div class="flex items-center gap-4">
                 <!-- Display the timer -->
-                <span id="timerDisplay" class="text-xl font-medium">
-                     {{ current_project.timer_seconds | default(0) | format_seconds }} 
-                </span>
+                <input type="text" class="regular-input w-32 !text-xl font-medium text-center"
+                    value="{{ current_project.timer_seconds | default(0) | format_seconds }}"
+                    id="timerDisplay" readonly>
 
-                <!-- Add the timer to your project page -->
+                <!-- Start / Stop buttons -->
                 <button id="startTimerBtn" onclick="startTimer()" class="text-4xl text-green-400 hover:text-green-500 aspect-square cursor-pointer">
                     <i class="fa-light fa-circle-play"></i>
                 </button>
                 <button id="stopTimerBtn" onclick="stopTimer()" class="text-4xl text-green-400 hover:text-green-500 aspect-square cursor-pointer" style="display: none;">
                     <i class="fa-light fa-circle-pause"></i>
                 </button>
+
+                <!-- Only visible while in editing mode -->
+                <button id="saveTimerBtn" onclick="saveTimer()" class="hidden btn-primary">Save</button>
+
             </div>
+
 
         </div>
 
@@ -130,6 +147,57 @@
 
 <script>
 let interval = null;
+function enableEdit() {
+    const timerDisplayInput = document.getElementById('timerDisplay');
+    const editTimerBtn = document.getElementById('editTimerBtn');
+    const saveTimerBtn = document.getElementById('saveTimerBtn');
+    const startTimerBtn = document.getElementById('startTimerBtn');
+    
+    toggleDropdown();
+
+    // Make the input editable
+    timerDisplayInput.readOnly = false;
+
+    // Show save button and hide edit button
+    editTimerBtn.style.display = 'none';
+    startTimerBtn.style.display = 'none';
+    saveTimerBtn.style.display = 'inline-block';
+
+    // (Optional) Adjust styling or other elements if needed
+    timerDisplayInput.classList.add('editable-input');
+}
+
+function saveTimer() {
+    const timerDisplayInput = document.getElementById('timerDisplay');
+    const newTime = timerDisplayInput.value; // Get value from the now editable input
+    const newSeconds = formatSeconds(newTime);
+
+    fetch(`/project/{{ current_project.id }}/set_timer`, {
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ seconds: newSeconds })
+    })
+    .then(response => {
+        if (response.ok) {
+            // Update the display with the formatted time, even though it's already in the input
+            timerDisplayInput.value = formatTime(newSeconds);
+        } else {
+            alert('Failed to save timer.');
+        }
+    })
+    .catch(error => console.error('Error saving timer:', error))
+    .finally(() => {
+        // Revert to readonly and update button visibility
+        timerDisplayInput.readOnly = true; // Make it readonly again
+        document.getElementById('editTimerBtn').style.display = 'inline-block';
+        document.getElementById('startTimerBtn').style.display = 'inline-block';
+        document.getElementById('saveTimerBtn').style.display = 'none';
+        timerDisplayInput.classList.remove('editable-input');
+
+    });
+}
 
 function updateProjectName(newName) {
     fetch(`/project/{{ current_project.id }}/update_name`, {
@@ -160,6 +228,7 @@ function updateProjectName(newName) {
 function updateButtonVisibility(running) {
     document.getElementById("startTimerBtn").style.display = running ? "none" : "inline-block";
     document.getElementById("stopTimerBtn").style.display = running ? "inline-block" : "none";
+    document.getElementById("editTimerBtn").style.display = !running ? "inline-block" : "none"; // Show edit button when stopped
 }
 
 function formatTime(seconds) {
@@ -174,12 +243,27 @@ function formatTime(seconds) {
     if (m > 0) return `${m}m ${formattedS}s`;
     return `${s}s`; // No padding for seconds alone as it's typically just a number
 }
+function formatSeconds(timeString) {
+    const parts = timeString.split(' ');
+    let seconds = 0;
+
+    for (const part of parts) {
+        if (part.endsWith('h')) {
+            seconds += parseInt(part) * 3600;
+        } else if (part.endsWith('m')) {
+            seconds += parseInt(part) * 60;
+        } else if (part.endsWith('s')) {
+            seconds += parseInt(part);
+        }
+    }
+    return seconds;
+}
 
 function fetchAndUpdateTimer() {
     fetch(`/project/{{ current_project.id }}/get_timer`)
         .then(res => res.json())
         .then(data => {
-            document.getElementById("timerDisplay").textContent = formatTime(data.seconds);
+            document.getElementById("timerDisplay").value = formatTime(data.seconds);
 
             // ALWAYS update button visibility based on the server's state
             updateButtonVisibility(data.running);
