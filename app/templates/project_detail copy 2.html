@@ -108,7 +108,7 @@
             {% for column in ['todo', 'inprogress', 'done'] %}
             <div class="bg-back-600 border border-back-500 rounded">
                 <h3 class="font-medium capitalize p-3 border-b border-back-500">{{ column.replace('_', ' ') }}</h3>
-                <ul id="{{ column }}" class="task-column p-2 space-y-1.5 min-h-[100px] h-full rounded" data-status="{{ column }}">
+                <ul id="{{ column }}" class="task-column p-2 space-y-1.5 min-h-[100px] rounded" data-status="{{ column }}">
                     {% for task in tasks if task.status == column %}
                     <!-- <li class="p-2 text-gray-200 bg-back-700 border border-back-500 rounded shadow break-words"
                         data-id="{{ task.id }}">
@@ -116,7 +116,8 @@
                     </li> -->
                     <li class="bg-back-700 border border-back-500 rounded shadow p-2" data-id="{{ task.id }}">
                         <p class="task-title text-gray-200 whitespace-pre-wrap break-words cursor-pointer" 
-                        ondblclick="makeEditable(this)" >{{ task.title }}</p>
+                        ondblclick="makeEditable(this)">
+                        {{ task.title }}</p>
                     </li>
 
 
@@ -124,45 +125,6 @@
                 </ul>
             </div>
             {% endfor %}
-        </div>
-        <!-- Task List -->
-        <div class="mt-6">
-            <h3 class="text-xl font-semibold mb-2">Tasks</h3>
-            <ul id="task-list" class="space-y-2">
-                {% for task in current_project.tasks %}
-                <li data-id="{{ task.id }}"
-                    class="flex items-center justify-between p-3 rounded-lg {{ 'bg-blue-400/20' if task.highlighted else 'bg-back-600' }}">
-
-                    <span class="{{ 'line-through text-gray-400' if task.completed else '' }}">
-                        {{ task.title }}
-                    </span>
-                    <div class="flex gap-3 items-center">
-                        <form action="{{ url_for('task.toggle_highlight', task_id=task.id) }}" method="POST">
-                            <button class="text-yellow-400 hover:text-yellow-600 text-sm">
-                                {% if task.highlighted %}
-                                    <i class="fa-solid fa-bookmark-slash"></i>
-                                {% else %}
-                                    <i class="fa-light fa-bookmark"></i>
-                                {% endif %}
-                            </button>
-                        </form>
-
-                        <form action="{{ url_for('task.toggle_task', task_id=task.id) }}" method="POST">
-                            <button class="text-green-500 hover:text-green-700 text-sm">
-                                {{ 'Undo' if task.completed else 'Done' }}
-                            </button>
-                        </form>
-                        <form action="{{ url_for('task.delete_task', task_id=task.id) }}" method="POST">
-                            <button class="text-red-400 hover:text-red-600 text-sm">
-                                Delete
-                            </button>
-                        </form>
-                    </div>
-                </li>
-                {% else %}
-                <p class="text-gray-400">No tasks yet.</p>
-                {% endfor %}
-            </ul>
         </div>
 
     </div>
@@ -178,11 +140,13 @@ function autoResize(el) {
 }
 
 function makeEditable(p) {
-    const taskId = p.closest('li').dataset.id;
+    const li = p.closest('li'); // Get the closest ancestor <li>
+    const taskId = li.dataset.id; // Get the data-id from the <li>
+
     const textarea = document.createElement('textarea');
     textarea.className = 'w-full min-h-[1.5rem] text-gray-200 bg-transparent resize-none overflow-hidden focus:outline-none';
     textarea.rows = 1;
-    textarea.dataset.id = taskId;
+    textarea.dataset.id = taskId; // Assign the taskId to the textarea
     
     // Set value *before* inserting for correct scrollHeight
     textarea.value = p.textContent.trim();
@@ -199,6 +163,7 @@ function makeEditable(p) {
         p.textContent = textarea.value.trim();
         p.style.display = '';
         textarea.remove();
+        // Use taskId here
         updateTask(taskId, { title: p.textContent })
             .then(response => console.log('Status update successful:', response))
             .catch(error => console.error('Status update failed:', error));
@@ -212,7 +177,6 @@ function makeEditable(p) {
 
 }
 
-
 ['todo', 'inprogress', 'done'].forEach(status => {
     new Sortable(document.getElementById(status), {
         group: 'kanban',
@@ -222,9 +186,9 @@ function makeEditable(p) {
             const newStatus = evt.to.dataset.status;
             const newIndex = evt.newIndex;
             updateTask(taskId, { status: newStatus, order: newIndex })
-                .then(response => console.log('Status update successful:', response))
-                .catch(error => console.error('Status update failed:', error));
-            }
+                .then(response => console.log('Multiple fields update successful:', response))
+                .catch(error => console.error('Multiple fields update failed:', error));
+        }
     });
 });
 </script>

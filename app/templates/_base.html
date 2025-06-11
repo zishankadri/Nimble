@@ -34,7 +34,7 @@
 
             {% for project in projects %}
                 <a id="{{ project.name }}-navlink" 
-                    href="{{ url_for('main.project_detail', id=project.id) }}" 
+                    href="{{ url_for('project.project_detail', id=project.id) }}" 
                     class="flex gap-4 items-center px-4 py-2 transition hover:bg-white/5 hover:text-white rounded-md
                     {% if project.name == current_project.name %} bg-white/5 text-white {% endif %}">
                         
@@ -50,7 +50,7 @@
 
         </nav>
         <div class="mt-auto">
-            <form method="POST" action="{{ url_for('main.add_project') }}">
+            <form method="POST" action="{{ url_for('project.add_project') }}">
                 <input type="text" id="name" name="name" required placeholder="Add new project" class="w-full px-2 text-sm py-2 outline-none hover:bg-white/5 focus:bg-white/5 rounded-md mb-2">
                 <!-- <button type="submit">Add Project</button> -->
             </form>

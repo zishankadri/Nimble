@@ -3,6 +3,17 @@
 @theme {
   --color-back-700: #1E1E1E;
   --color-back-600: #262626;
+  --color-back-500: #363636;
+  
+}
+.dropdown {
+    @apply p-1.5 bg-back-600 border border-back-500 origin-top-right absolute right-0 mt-8 mr-4 w-56 rounded-lg shadow-lg shadow-black z-10
+}
+.dropdown-item {
+    @apply text-gray-200 text-sm px-3 py-2 text-left rounded-md hover:bg-back-500;
+}
+.dropdown-item *{
+    @apply text-left;
 }
 
 .btn-primary {

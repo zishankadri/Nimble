@@ -2,23 +2,65 @@
 
 {% block title %}Home Page{% endblock %} 
 
+{% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %} 
+
 {% block main %} 
 
+<style>
+.editable-input {
+    border: 1px solid #464646 ; /* back-400 */
+    border-radius: 0.25rem;
+    padding: 0 0.5rem;
+}
+</style>
+
+<div id="project-meta" data-project-id="{{ current_project.id }}"></div>
 
     {% if current_project.image %}
-        <div class="w-full h-32 bg-repeat" style="background-image: url('{{ url_for('static', filename=current_project.image) }}'); 
-                            background-size: 250px 250px;"></div>
+        <div class="w-full h-32 bg-repeat" 
+            style= "background-image: url('{{ url_for('static', filename=current_project.image) }}'); 
+                    background-size: 250px 250px;">
+        </div>
         {% else %}
         <p>No image available for this project.</p>
     {% endif %} 
 
     <div class="px-12 pb-12 text-gray-200">
 
-        <form action="{{ url_for('main.delete_project', id=current_project.id) }}" method="POST" class="mt-4">
-            <button type="submit" class="text-gray-400 py-2 rounded hover:text-red-400">
-                Delete Project
+        <div class="relative w-full flex justify-end my-2">
+
+            <!-- Dropdown button (three dots) -->
+            <button type="button" class="aspect-square rounded-full w-8 text-gray-400 hover:bg-back-600 focus:outline-none flex items-center justify-center" id="dropdownMenuButton" onclick="toggleDropdown()">
+                <i class="fa-solid fa-ellipsis-vertical text-xl"></i>
             </button>
-        </form>
+            <!-- Dropdown container -->
+            <div id="dropdownMenu" class="dropdown hidden">
+                    <!-- Mark as complete -->
+                    <form action="{{ url_for('project.delete_project', id=current_project.id) }}" method="POST"
+                        class="dropdown-item">
+                        <button type="submit" 
+                            class="block w-full text-green-400">
+                            <i class="fa-regular fa-circle-check text-sm pr-2"></i> Mark as complete
+                        </button>
+                    </form>
+                    <!-- Edit Timers -->
+                    <button id="editTimerBtn" onclick="enableEdit()" 
+                        class="dropdown-item block w-full px-4 py-2">
+                        <i class="fa-light fa-pen-line text-sm pr-2"></i> Edit Timer
+                    </button>
+                    <!-- Delete project -->
+                    <form action="{{ url_for('project.delete_project', id=current_project.id) }}" method="POST"
+                        class="dropdown-item hover:!bg-red-400/20"
+                        onsubmit="return confirm('Delete {{ current_project.name }} project?');">
+                        <button type="submit" 
+                        class="block w-full text-red-300">
+                            <i class="fa-regular fa-trash-xmark text-sm pr-2"></i> Delete project
+                        </button>
+                    </form>
+            </div>
+        </div>
 
         <!-- Top bar -->
         <div class="flex justify-between">
@@ -32,21 +74,27 @@
             <!-- Timer -->
             <div class="flex items-center gap-4">
                 <!-- Display the timer -->
-                <span id="timerDisplay" class="text-xl font-medium"> {{ current_project.timer_seconds }} </span>
+                <input type="text" class="regular-input w-32 !text-xl font-medium text-center"
+                    value="{{ current_project.timer_seconds | default(0) | format_seconds }}"
+                    id="timerDisplay" readonly>
 
-                <!-- Add the timer to your project page -->
+                <!-- Start / Stop buttons -->
                 <button id="startTimerBtn" onclick="startTimer()" class="text-4xl text-green-400 hover:text-green-500 aspect-square cursor-pointer">
                     <i class="fa-light fa-circle-play"></i>
                 </button>
                 <button id="stopTimerBtn" onclick="stopTimer()" class="text-4xl text-green-400 hover:text-green-500 aspect-square cursor-pointer" style="display: none;">
                     <i class="fa-light fa-circle-pause"></i>
                 </button>
+
+                <!-- Save button (Only visible while in editing mode) -->
+                <button id="saveTimerBtn" onclick="saveTimer()" class="hidden btn-primary">Save</button>
+
             </div>
 
         </div>
 
         <!-- Task Creation -->
-        <form action="{{ url_for('main.create_task', project_id=current_project.id) }}" method="POST" class="mt-6 flex gap-2 items-center">
+        <form action="{{ url_for('project.create_task', project_id=current_project.id) }}" method="POST" class="mt-6 flex gap-2 items-center">
             <input name="title" placeholder="New Task..." required
                 class="regular-input" />
             <button type="submit" class="btn-secondary">
@@ -57,16 +105,16 @@
         <!-- Task List -->
         <div class="mt-6">
             <h3 class="text-xl font-semibold mb-2">Tasks</h3>
-            <ul class="space-y-2">
+            <ul id="task-list" class="space-y-2">
                 {% for task in current_project.tasks %}
-                <!-- <li class="flex bg-back-600 items-center justify-between p-3 rounded-lg"> -->
-                <li class="flex items-center justify-between p-3 rounded-lg {{ 'bg-blue-400/20' if task.highlighted else 'bg-back-600' }}">
+                <li data-id="{{ task.id }}"
+                    class="flex items-center justify-between p-3 rounded-lg {{ 'bg-blue-400/20' if task.highlighted else 'bg-back-600' }}">
 
                     <span class="{{ 'line-through text-gray-400' if task.completed else '' }}">
                         {{ task.title }}
                     </span>
                     <div class="flex gap-3 items-center">
-                        <form action="{{ url_for('main.toggle_highlight', task_id=task.id) }}" method="POST">
+                        <form action="{{ url_for('task.toggle_highlight', task_id=task.id) }}" method="POST">
                             <button class="text-yellow-400 hover:text-yellow-600 text-sm">
                                 {% if task.highlighted %}
                                     <i class="fa-solid fa-bookmark-slash"></i>
@@ -76,12 +124,12 @@
                             </button>
                         </form>
 
-                        <form action="{{ url_for('main.toggle_task', task_id=task.id) }}" method="POST">
+                        <form action="{{ url_for('task.toggle_task', task_id=task.id) }}" method="POST">
                             <button class="text-green-500 hover:text-green-700 text-sm">
                                 {{ 'Undo' if task.completed else 'Done' }}
                             </button>
                         </form>
-                        <form action="{{ url_for('main.delete_task', task_id=task.id) }}" method="POST">
+                        <form action="{{ url_for('task.delete_task', task_id=task.id) }}" method="POST">
                             <button class="text-red-400 hover:text-red-600 text-sm">
                                 Delete
                             </button>
@@ -97,128 +145,29 @@
     </div>
 
 
-<!-- Title change -->
+<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+
 <script>
-    function updateProjectName(newName) {
-        fetch(`/project/{{ current_project.id }}/update_name`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName })
-        }).then(res => {
-            if (!res.ok) {
-            alert("Project with this name already exists");
-            } else {
-            document.getElementById("nav-project-name-{{ current_project.id }}").textContent = newName;
-            }
-        });
-    }
-</script>
+    new Sortable(document.getElementById('task-list'), {
+        animation: 150,
+        ghostClass: '#464646', // back-400
 
-<!-- Timer -->
-<script>
-    function formatTime(seconds) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-
-        if (h > 0) return `${h}h ${m}m ${s}s`;
-        if (m > 0) return `${m}m ${s}s`;
-        return `${s}s`;
-    }
-
-    function updateButtonVisibility(running) {
-        document.getElementById("startTimerBtn").style.display = running ? "none" : "inline-block";
-        document.getElementById("stopTimerBtn").style.display = running ? "inline-block" : "none";
-    }
-
-    let timer = null;
-    let syncTimer = null;
-    let elapsedTime = 0;
-    const display = document.getElementById("timerDisplay");
-    const projectId = "{{ current_project.id }}";
-    const dbSeconds = {{ current_project.timer_seconds | default(0) }};  // From server
-
-    function loadTimerState() {
-        const stored = JSON.parse(localStorage.getItem("activeTimer"));
-        if (stored && stored.id === projectId) {
-        const now = Date.now();
-        const offset = Math.floor((now - stored.startTime) / 1000);
-        elapsedTime = stored.initialSeconds + offset;
-        display.textContent = formatTime(elapsedTime);
-        startInterval();
-        startSync();
-        updateButtonVisibility(true);
-        } else {
-        elapsedTime = dbSeconds;
-        display.textContent = formatTime(elapsedTime);
-        updateButtonVisibility(false);
+        onStart: function (evt) {
+            evt.item.style.visibility = 'hidden'; // hide original
+        },
+        onEnd: function (evt) {
+            evt.item.style.visibility = 'visible'; // restore after drop
+            // Send new order to server (optional)
+            const taskOrder = [...evt.to.children].map(li => li.dataset.id);
+            fetch('/task/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ order: taskOrder })
+            });
         }
-    }
-
-    function startInterval() {
-        clearInterval(timer);
-        timer = setInterval(() => {
-        elapsedTime++;
-        display.textContent = formatTime(elapsedTime);
-        }, 1000);
-    }
-
-    function startSync() {
-        clearInterval(syncTimer);
-        syncTimer = setInterval(() => {
-        fetch(`/project/${projectId}/sync_timer`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seconds: elapsedTime })
-        });
-        }, 10000);
-    }
-
-    function startTimer() {
-        const current = JSON.parse(localStorage.getItem("activeTimer"));
-
-        // Sync and stop previous timer if it's from another project
-        if (current && current.id !== projectId) {
-        const now = Date.now();
-        const finalElapsed = Math.floor((now - current.startTime) / 1000) + current.initialSeconds;
-
-        fetch(`/project/${current.id}/sync_timer`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seconds: finalElapsed })
-        });
-
-        localStorage.removeItem("activeTimer");
-        }
-
-        const startTime = Date.now();
-        localStorage.setItem("activeTimer", JSON.stringify({
-        id: projectId,
-        startTime,
-        initialSeconds: elapsedTime
-        }));
-        startInterval();
-        startSync();
-        updateButtonVisibility(true);
-
-    }
-
-    function stopTimer() {
-        clearInterval(timer);
-        clearInterval(syncTimer);
-        localStorage.removeItem("activeTimer");
-
-        fetch(`/project/${projectId}/sync_timer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seconds: elapsedTime })
-        });
-        updateButtonVisibility(false);
-
-    }
-
-    window.onload = loadTimerState;
+    });
 </script>
-
 
 {% endblock %}

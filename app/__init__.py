@@ -29,7 +29,7 @@ def create_app():
     from .blueprints.project.routes import project_bp
     from .blueprints.task.routes import task_bp
 
-    app.register_blueprint(project_bp, url_prefix='/projects')
-    app.register_blueprint(routes, url_prefix='/task')
+    app.register_blueprint(project_bp, url_prefix='/project')
+    app.register_blueprint(task_bp, url_prefix='/task')
 
     return app

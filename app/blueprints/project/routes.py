@@ -1,31 +1,32 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from sqlalchemy import func
-
 from flask import jsonify
-from datetime import datetime, timezone
+from datetime import datetime
+from app.models import  Project, Task, db
+from app.utils import random_marble_image
 
-from .models import  Project, Task, db
-
-from .utils import random_marble_image
-
-project = Blueprint('project', __name__)
+project_bp = Blueprint('project', __name__)
 
 
-@main.route('/')
+@project_bp.route('/')
 def home():
     all_projects = Project.query.all()
     return render_template('index.html', current_project=None, projects=all_projects)
 
 
-@main.route('/project/<int:id>')
+@project_bp.route('/<int:id>')
 def project_detail(id):
     all_projects = Project.query.all()
     project = Project.query.filter_by(id=id).first_or_404()
+    tasks = Task.query.filter_by(project_id=id).order_by(Task.order).all()
+    return render_template('project_detail.html', 
+            current_project=project,
+            projects=all_projects,
+            tasks=tasks,
+        )
 
-    return render_template('project_detail.html', current_project=project, projects=all_projects)
 
-
-@main.route('/add', methods=['POST'])
+@project_bp.route('/add', methods=['POST'])
 def add_project():
     name = request.form['name']
 
@@ -49,7 +50,7 @@ def add_project():
     return redirect(url_for('main.home'))  # Redirect to projects page
 
 
-@main.route('/project/<int:id>/delete', methods=['POST'])
+@project_bp.route('/<int:id>/delete', methods=['POST'])
 def delete_project(id):
     project = Project.query.filter_by(id=id).first_or_404()
     db.session.delete(project)
@@ -58,7 +59,7 @@ def delete_project(id):
 
 
 
-@main.route('/project/<int:id>/update_name', methods=['POST'])
+@project_bp.route('/<int:id>/update_name', methods=['POST'])
 def update_project_name(id):
     data = request.get_json()
     name = data.get("name")
@@ -76,7 +77,7 @@ def update_project_name(id):
     return jsonify({"status": "success"})
 
 
-@main.route("/project/<int:id>/get_timer")
+@project_bp.route("/<int:id>/get_timer")
 def get_timer(id):
     project = Project.query.get_or_404(id)
     seconds = project.timer_seconds
@@ -89,12 +90,13 @@ def get_timer(id):
         # Periodic backup (every 10 minutes) to minimize data loss on crash.
         if elapsed_seconds > 600:  # 10 minutes
             project.timer_seconds += int(elapsed_seconds)
+            project.timer_started_at = now
             db.session.commit()
 
     return jsonify(seconds=seconds, running=project.timer_running)
 
 
-@main.route("/project/<int:id>/start_timer", methods=["POST"])
+@project_bp.route("/<int:id>/start_timer", methods=["POST"])
 def start_timer(id):
     now = datetime.now()
 
@@ -134,7 +136,7 @@ def start_timer(id):
     return '', 204
 
 
-@main.route("/project/<int:id>/stop_timer", methods=["POST"])
+@project_bp.route("/<int:id>/stop_timer", methods=["POST"])
 def stop_timer(id):
     project = Project.query.get_or_404(id)
     if project.timer_running and project.timer_started_at:
@@ -149,42 +151,8 @@ def stop_timer(id):
     return '', 204
 
 
-# In your main blueprint
-@main.route('/project/<int:project_id>/create_task', methods=['POST'])
-def create_task(project_id):
-    title = request.form['title']
-    task = Task(title=title, project_id=project_id)
-    db.session.add(task)
-    db.session.commit()
-    return redirect(url_for('main.project_detail', id=project_id))
-
-
-@main.route('/task/<int:task_id>/toggle', methods=['POST'])
-def toggle_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    task.completed = not task.completed
-    db.session.commit()
-    return redirect(url_for('main.project_detail', id=task.project_id))
-
-
-@main.route('/task/<int:task_id>/delete', methods=['POST'])
-def delete_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    db.session.delete(task)
-    db.session.commit()
-    return redirect(url_for('main.project_detail', id=task.project_id))
-
-
-@main.route('/task/<int:task_id>/highlight', methods=['POST'])
-def toggle_highlight(task_id):
-    task = Task.query.get_or_404(task_id)
-    task.highlighted = not task.highlighted
-    db.session.commit()
-    return redirect(url_for('main.project_detail', id=task.project_id))
-
-
 # After editing
-@main.route('/project/<int:project_id>/set_timer', methods=['POST'])
+@project_bp.route('/<int:project_id>/set_timer', methods=['POST'])
 def set_project_timer(project_id):
     """
     Sets the timer for a specific project to a new value.
@@ -210,5 +178,4 @@ def set_project_timer(project_id):
     except Exception as e:
         db.session.rollback() # Rollback in case of an error
         return jsonify({"error": str(e)}), 500
-
 

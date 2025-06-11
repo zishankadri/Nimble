@@ -16,10 +16,11 @@ class Project(db.Model):
         return f"Project('{self.name}', '{self.id}')"
 
 
-
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     completed = db.Column(db.Boolean, default=False)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     highlighted = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(50), nullable=False, default='todo')  # todo, inprogress, done
+    order = db.Column(db.Integer, nullable=False, default=0)
