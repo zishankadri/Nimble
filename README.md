@@ -1,6 +1,6 @@
 # Nimble
 
-![Project Screenshot](images/project-screenshot.png)
+![Project Screenshot](img/project-screenshot.png)
 
 **Nimble** is a personal productivity app built to help me manage my projects, track time, and analyze how my time is spent. It simplifies project tracking and gives insights into daily work patterns.
 
