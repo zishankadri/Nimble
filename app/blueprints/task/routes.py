@@ -5,18 +5,32 @@ from app.models import  Project, Task, db
 
 task_bp = Blueprint('task', __name__)
 
+from flask_cors import cross_origin
 
-# In your main blueprint
+@task_bp.route('/api/get_tasks/<int:project_id>', methods=['POST'])
+def get_tasks(project_id):
+    tasks = Project.query.get_or_404(project_id).tasks
+    return jsonify([{
+        'id': t.id,
+        'title': t.title,
+        'completed': t.completed,
+        'highlighted': t.highlighted,
+        'status': t.status,
+        'order': t.order,
+    } for t in tasks])
+
+
 @task_bp.route('/<int:project_id>/create_task', methods=['POST'])
 def create_task(project_id):
-    title = request.form['title']
+    data = request.get_json()
+    title = data.get('title')
     task = Task(title=title, project_id=project_id)
     db.session.add(task)
     db.session.commit()
-    return redirect(url_for('project.project_detail', id=project_id))
+    return '', 200
 
 
-@task_bp.route('/task/<int:task_id>/toggle', methods=['POST'])
+@task_bp.route('/<int:task_id>/toggle-completion', methods=['POST'])
 def toggle_task(task_id):
     """
     Toggles the completion status of a task.
@@ -24,21 +38,18 @@ def toggle_task(task_id):
     task = Task.query.get_or_404(task_id)
     task.completed = not task.completed
     db.session.commit()
-    return redirect(url_for('project.project_detail', id=task.project_id))
+    return jsonify({'highlighted': task.completed}), 200
 
 
-@task_bp.route('/task/<int:task_id>/delete', methods=['POST'])
+@task_bp.route('/<int:task_id>/delete', methods=['POST'])
 def delete_task(task_id):
-    """
-    Deletes a task.
-    """
     task = Task.query.get_or_404(task_id)
     db.session.delete(task)
     db.session.commit()
-    return redirect(url_for('project.project_detail', id=task.project_id))
+    return '', 200
 
 
-@task_bp.route('/task/<int:task_id>/highlight', methods=['POST'])
+@task_bp.route('/<int:task_id>/toggle-highlight', methods=['POST'])
 def toggle_highlight(task_id):
     """ 
     Toggles the highlight status of a task.
@@ -46,7 +57,7 @@ def toggle_highlight(task_id):
     task = Task.query.get_or_404(task_id)
     task.highlighted = not task.highlighted
     db.session.commit()
-    return redirect(url_for('project.project_detail', id=task.project_id))
+    return jsonify({'highlighted': task.highlighted}), 200
 
 
 @task_bp.route('/update-task/<int:task_id>', methods=['PATCH'])

@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from . import jinja_filters
+from flask_cors import CORS
 
 db = SQLAlchemy()
 from flask_migrate import Migrate
@@ -9,7 +10,7 @@ from flask_migrate import Migrate
 
 def create_app():
     app = Flask(__name__)
-    
+
     # Custom jinja filters
     app.jinja_env.filters['format_seconds'] = jinja_filters.format_seconds
 
@@ -18,6 +19,8 @@ def create_app():
     db.init_app(app)
     
     migrate = Migrate(app, db)
+    CORS(app)
+
 
     from .routes import main
     app.register_blueprint(main)
