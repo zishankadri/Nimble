@@ -20,8 +20,8 @@
 
     {% if current_project.image %}
         <div class="w-full h-32 bg-repeat" 
-            style= "background-image: url('{{ url_for('static', filename=current_project.image) }}'); 
-                    background-size: 250px 250px;">
+            style="background-image: url('{{ url_for('static', filename=current_project.image) }}'); 
+                background-size: 250px 250px;">
         </div>
         {% else %}
         <p>No image available for this project.</p>
@@ -115,7 +115,8 @@
                         {{ task.title }}
                     </li> -->
                     <li class="bg-back-700 border border-back-500 rounded shadow p-2" data-id="{{ task.id }}">
-                        <p class="task-title text-gray-200 whitespace-pre-wrap break-words cursor-pointer" 
+                        <p class="task-title text-gray-200 whitespace-pre-wrap break-words
+                         cursor-pointer" 
                         ondblclick="makeEditable(this)" >{{ task.title }}</p>
                     </li>
 

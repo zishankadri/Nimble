@@ -8,6 +8,29 @@ from app.utils import random_marble_image
 project_bp = Blueprint('project', __name__)
 
 
+@project_bp.route('/api/projects')
+def get_projects():
+
+    projects = db.session.query(Project).all()  # Adjust for your ORM
+    return jsonify([{
+        'id': p.id,
+        'name': p.name,
+        'image': p.image,
+    } for p in projects])
+
+@project_bp.route('/api/get-details/<int:id>')
+def get_project(id):
+    project = db.session.query(Project).get(id)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    return jsonify({
+        'id': project.id,
+        'name': project.name,
+        'image': project.image,
+        'timer_seconds': project.timer_seconds,
+    })
+
+
 @project_bp.route('/')
 def home():
     all_projects = Project.query.all()
@@ -28,7 +51,8 @@ def project_detail(id):
 
 @project_bp.route('/add', methods=['POST'])
 def add_project():
-    name = request.form['name']
+    data = request.get_json()
+    name = data.get('name')
 
     # Check if project with same slug already exists
     existing_project = Project.query.filter_by(name=name).first()
@@ -46,8 +70,14 @@ def add_project():
         return "Error generating marble image", 500
 
     db.session.commit()
+    
+    return jsonify({
+        'id': new_project.id,
+        'name': new_project.name,
+        'image': new_project.image 
+    }), 201
 
-    return redirect(url_for('main.home'))  # Redirect to projects page
+    # return redirect(url_for('main.home'))  # Redirect to projects page
 
 
 @project_bp.route('/<int:id>/delete', methods=['POST'])
@@ -59,7 +89,7 @@ def delete_project(id):
 
 
 
-@project_bp.route('/<int:id>/update_name', methods=['POST'])
+@project_bp.route('/<int:id>/update_name', methods=['PATCH'])
 def update_project_name(id):
     data = request.get_json()
     name = data.get("name")
@@ -98,6 +128,8 @@ def get_timer(id):
 
 @project_bp.route("/<int:id>/start_timer", methods=["POST"])
 def start_timer(id):
+    print("started")
+    print("started")
     now = datetime.now()
 
     # Identify all projects that are currently running (excluding the one we're about to start)
@@ -138,6 +170,7 @@ def start_timer(id):
 
 @project_bp.route("/<int:id>/stop_timer", methods=["POST"])
 def stop_timer(id):
+
     project = Project.query.get_or_404(id)
     if project.timer_running and project.timer_started_at:
         now = datetime.now()
