@@ -27,7 +27,15 @@ def create_task(project_id):
     task = Task(title=title, project_id=project_id)
     db.session.add(task)
     db.session.commit()
-    return '', 200
+
+    return jsonify({
+        'id': task.id,
+        'title': task.title,
+        'completed': task.completed,
+        'highlighted': task.highlighted,
+        'status': task.status,
+        'order': task.order,
+    }), 200
 
 
 @task_bp.route('/<int:task_id>/toggle-completion', methods=['POST'])
@@ -82,7 +90,7 @@ def update_task(task_id):
         task.status = data['status']
     if 'order' in data:
         task.order = data['order']
-
+        
     try:
         db.session.commit()
         # Return 200 OK for successful update (you can also return the updated task)

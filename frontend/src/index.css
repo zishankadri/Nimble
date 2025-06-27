@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --color-back-700: #1E1E1E;
+  --color-back-600: #262626;
+  --color-back-500: #363636;
+  --color-back-400: #464646;
+  
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
+.normal-link {
+  @apply flex gap-4 items-center px-4 py-2 transition hover:bg-white/5 hover:text-white rounded-md
+}
+
+.active-link {
+  @apply flex gap-4 items-center px-4 py-2 transition bg-white/10 text-white rounded-md;
+}
+
+
+.dropdown {
+    @apply p-1.5  bg-back-600 border border-back-500 origin-top-right absolute right-0 mr-4 w-56 rounded-lg shadow-lg shadow-black z-10
+}
+.dropdown-item {
+    @apply flex font-normal items-center gap-3 w-full text-gray-200 text-sm px-3 py-2 text-left rounded-md hover:bg-back-500;
+}
+.dropdown-item *{
+    @apply text-left;
+}
+
+.btn-primary {
+    @apply text-gray-200 bg-green-600 rounded-md gap-2 text-sm px-4 py-2 hover:bg-green-500;
+}
+.btn-primary:disabled {
+    @apply bg-gray-400 cursor-not-allowed;
+}
+
+.regular-input {
+    @apply text-sm py-2 border-b border-back-400 outline-none focus:outline-none;
+}
+/* .timer-input {
+    @apply text-sm py-2 text-center outline-none rounded-md border border-transparent;
+    @apply focus:border-back-400 focus:outline-none;
+    @apply read-only:focus:border-transparent;
+} */
+.timer-input {
+  @apply py-2 text-center rounded-md ;
+  @apply focus:outline-2 focus:outline-back-400;
+  @apply read-only:focus:outline-none;
+}
+
+.editable-input {
+  @apply outline-2 outline-back-400
+}
+
+.btn-secondary {
+    @apply text-gray-200 bg-back-600 rounded-md gap-2 text-sm px-4 py-2 hover:bg-[#2e2e2e];
+}
+.active-btn-square {
+    @apply text-gray-200 rounded-md bg-back-600 gap-2 text-sm p-2;
+}
+.inactive-btn-square {
+    @apply text-gray-200 rounded-md gap-2 text-sm p-2 hover:bg-[#2e2e2e];
+}
